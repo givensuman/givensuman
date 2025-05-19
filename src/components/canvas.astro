@@ -1,0 +1,178 @@
+---
+interface Props {
+  seed: string;
+}
+
+const { seed } = Astro.props;
+---
+<style>
+  #canvas {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+  }
+</style>
+
+<main>
+  <div id="canvas" data-seed={seed}></div>
+</main>
+
+<script
+  is:inline
+  src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js">
+</script>
+
+<script is:inline>
+  let particles = [];
+  let num;
+  const noiseScale = 0.01 / 9;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reduceMotion = prefersReducedMotion.matches;
+
+  prefersReducedMotion.addEventListener("change", (event) => {
+    reduceMotion = event.matches;
+    if (reduceMotion) {
+      noLoop();
+    } else {
+      loop();
+    }
+  });
+
+  /**
+   * P5.js setup function
+   */
+  function setup() {
+    let container = document.getElementById("canvas");
+    // Ensure the container exists before proceeding
+    if (!container) {
+      console.error("Canvas element not found!");
+      return;
+    }
+    let desiredWidth = container.clientWidth;
+    let desiredHeight = container.clientHeight;
+
+    // Check if createCanvas function exists (from p5.js)
+    if (typeof createCanvas !== "function") {
+      console.error("p5.js createCanvas function not found. Is p5.js loaded correctly?");
+      return;
+    }
+    const canvas = createCanvas(desiredWidth, desiredHeight);
+    canvas.parent("canvas");
+    canvas.style("display", "block");
+
+    const baseArea = 1920 * 1080;
+      const baseNum = 1500;
+      const minNum = 500;
+      const maxNum = 10000;
+      const calculatedNum = (width * height) / baseArea * baseNum;
+      num = Math.max(minNum, Math.min(maxNum, calculatedNum));
+    num = Math.floor(num);
+
+    if (reduceMotion) {
+      noLoop(); // Turn off animation if reduce motion is preferred
+    } else {
+      randomSeed(container.dataset.seed);
+
+      for (let i = 0; i < num; i++) {
+        // Ensure width and height are available from p5.js
+        if (typeof width !== "undefined" && typeof height !== "undefined") {
+          particles.push(
+            createVector(random(width), random(height)),
+          );
+        } else {
+          console.warn("p5.js width or height not available when creating particles.");
+          // Add a default vector if p5.js dimensions aren't ready
+           // This might cause errors later if p5.js functions like createVector aren't fully loaded.
+           // A more robust approach might involve waiting for p5.js to be ready.
+          particles.push({ pos: { x: 0, y: 0 }, color: { r: 0, g: 0, b: 0 } }); // Basic fallback
+        }
+      }
+      // Check if stroke and clear functions exist (from p5.js)
+      if (typeof stroke === "function") stroke(100);
+      if (typeof clear === "function") clear();
+      windowResized(); // Initial resize call
+    }
+  }
+
+  /**
+    * P5.js draw function
+    */
+  function draw() {
+    // Check if p5.js functions are available before using them
+    if (typeof window.scrollY === "undefined" ||
+        typeof window.innerHeight === "undefined" ||
+        typeof background === "undefined" ||
+        typeof point === "undefined" ||
+        typeof noise === "undefined" ||
+        typeof TAU === "undefined" ||
+        typeof cos === "undefined" ||
+        typeof sin === "undefined" ||
+        typeof random === "undefined" ||
+        typeof width === "undefined" ||
+        typeof height === "undefined") {
+      console.warn("p5.js drawing functions not fully available. Skipping draw cycle.");
+      return;
+    }
+
+    if (window.scrollY <= window.innerHeight) {
+      background(0, 25); // Semi-transparent background for fading trails
+      for (let i = 0; i < num; i++) {
+        let p = particles[i];
+        strokeWeight(2);
+        point(p.x, p.y);
+
+        let n = noise(p.x * noiseScale,
+                      p.y * noiseScale,
+                      frameCount * 0.005
+                     );
+        let a = TAU * n;
+
+        p.x += cos(a);
+        p.y += sin(a);
+
+        if (!onScreen(p)) {
+          p.x = random(width);
+          p.y = random(height);
+        }
+      }
+    }
+  }
+
+  function windowResized() {
+    // Check if resizeCanvas function exists (from p5.js)
+    if (typeof resizeCanvas !== "function") {
+      console.warn("p5.js resizeCanvas function not found.");
+      return;
+    }
+    let container = document.getElementById("canvas");
+    if (!container) {
+      console.warn("Canvas element not found during resize.");
+      return;
+    }
+    let desiredWidth = container.clientWidth;
+    let desiredHeight = container.clientHeight;
+
+    // Check if p5.js width and height are available
+    if (typeof width !== "undefined" && typeof height !== "undefined") {
+      // Only resize if dimensions have actually changed
+      if (width !== desiredWidth || height !== desiredHeight) {
+        resizeCanvas(desiredWidth, desiredHeight);
+      }
+    } else {
+      console.warn("p5.js width or height not available for resize check.");
+    }
+  }
+
+  function onScreen(v) {
+    // Check if p5.js width and height are available
+    if (typeof width !== "undefined" && typeof height !== "undefined") {
+      return v.x >= 0 && v.x <= width && v.y >= 0 && v.y <= height;
+    } else {
+      console.warn("p5.js width or height not available for onScreen check.");
+      return false; // Assume off-screen if dimensions are unknown
+    }
+  }
+</script>
