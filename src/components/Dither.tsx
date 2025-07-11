@@ -162,6 +162,7 @@ class RetroEffectImpl extends Effect {
 }
 
 import { forwardRef } from "react";
+import usePrefersReducedMotion from "../hooks/usePrefersReducedMotion";
 
 const RetroEffect = forwardRef<
   RetroEffectImpl,
@@ -315,12 +316,14 @@ export default function Dither({
   pixelSize = 2,
   disableAnimation = false,
   enableMouseInteraction = true,
-  mouseRadius = 1,
+  mouseRadius = 0.25,
   ...props
 }: DitherProps) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   return (
     <Canvas
-      camera={{ position: [0, 0, 6] }}
+      camera={{ position: [0, 0, 1] }}
       dpr={window.devicePixelRatio}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       {...props}
@@ -332,7 +335,7 @@ export default function Dither({
         waveColor={waveColor}
         colorNum={colorNum}
         pixelSize={pixelSize}
-        disableAnimation={disableAnimation}
+        disableAnimation={prefersReducedMotion ?? disableAnimation}
         enableMouseInteraction={enableMouseInteraction}
         mouseRadius={mouseRadius}
       />
