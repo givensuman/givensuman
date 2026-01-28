@@ -1,1 +1,1 @@
-<img src="./public/dog.gif" alt="dog" align="center" />
+<img src="./public/dog.jpg" alt="dog" width="400" />
